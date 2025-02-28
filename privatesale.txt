@@ -1,0 +1,81 @@
+import { useState, useEffect } from "react";
+import { ethers } from "ethers";
+import { Button, Card, CardContent, Input, Alert } from "@/components/ui";
+
+const VNST_SALE_PLATFORM = "YOUR_SMART_CONTRACT_ADDRESS";
+const USDT_CONTRACT = "USDT_CONTRACT_ADDRESS";
+const VNST_PRICE = 0.90; 
+
+export default function BuyVNST() {
+  const [wallet, setWallet] = useState(null);
+  const [usdtAmount, setUsdtAmount] = useState(0);
+  const [vnstAmount, setVnstAmount] = useState(0);
+  const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (usdtAmount > 0) {
+      setVnstAmount((usdtAmount / VNST_PRICE).toFixed(2));
+    }
+  }, [usdtAmount]);
+
+  async function connectWallet() {
+    if (!window.ethereum) return alert("Please install MetaMask");
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const accounts = await provider.send("eth_requestAccounts", []);
+    setWallet(accounts[0]);
+    getUSDTBalance(accounts[0]);
+  }
+
+  async function getUSDTBalance(account) {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const usdtContract = new ethers.Contract(USDT_CONTRACT, ["function balanceOf(address) view returns (uint256)"], provider);
+    const balance = await usdtContract.balanceOf(account);
+    setBalance(ethers.utils.formatUnits(balance, 18));
+  }
+
+  async function buyTokens() {
+    if (!wallet) return alert("Please connect your wallet first");
+    setLoading(true);
+    setMessage("");
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(VNST_SALE_PLATFORM, ["function buyTokens(uint256)"], signer);
+      const usdtContract = new ethers.Contract(USDT_CONTRACT, ["function approve(address,uint256)"], signer);
+
+      const amountInWei = ethers.utils.parseUnits(usdtAmount.toString(), 18);
+      await usdtContract.approve(VNST_SALE_PLATFORM, amountInWei);
+      const tx = await contract.buyTokens(amountInWei);
+      await tx.wait();
+      setMessage("✅ Purchase Successful! VNST added to your wallet.");
+      getUSDTBalance(wallet);
+    } catch (error) {
+      setMessage("❌ Transaction Failed!");
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-800 text-white p-6">
+      <Card className="p-6 max-w-md w-full bg-gray-900 border border-gray-700 rounded-lg shadow-lg">
+        <CardContent>
+          <h2 className="text-3xl font-bold mb-4 text-blue-400">🔥 Buy VNST Tokens</h2>
+          {!wallet ? (
+            <Button onClick={connectWallet} className="w-full bg-blue-600 hover:bg-blue-500">Connect Wallet</Button>
+          ) : (
+            <>
+              <p className="text-sm text-gray-400">Wallet: {wallet.substring(0, 6)}...{wallet.substring(wallet.length - 4)}</p>
+              <p className="text-sm text-gray-400">USDT Balance: {balance} USDT</p>
+              <Input type="number" placeholder="Enter USDT Amount" value={usdtAmount} onChange={(e) => setUsdtAmount(e.target.value)} className="mt-3 text-gray-900" />
+              <p className="mt-2 text-gray-300">You will receive: <strong>{vnstAmount} VNST</strong></p>
+              <Button onClick={buyTokens} className="mt-4 w-full bg-green-600 hover:bg-green-500" disabled={loading}>{loading ? "Processing..." : "Buy VNST"}</Button>
+            </>
+          )}
+          {message && <Alert className="mt-4 text-white bg-red-500">{message}</Alert>}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
