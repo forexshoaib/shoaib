@@ -1,0 +1,118 @@
+/**
+ *Submitted for verification at BscScan.com on 2025-02-12
+*/
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract VNetworkServices {
+    address public owner;
+    string public constant name = "V Network Services";
+    string public constant symbol = "VNST";
+    uint8 public constant decimals = 8;
+    uint256 private _totalSupply = 10_500_000 * 10**8;                     
+
+    mapping(address => uint256) private balances;
+    mapping(address => mapping(address => uint256)) private _allowances;
+
+    bool public isPaused = false;
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Paused(address account);
+    event Unpaused(address account);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+
+    modifier whenNotPaused() {
+        require(!isPaused, "Contract is paused");
+        _;
+    }
+
+    modifier whenPaused() {
+        require(isPaused, "Contract is not paused");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        balances[owner] = _totalSupply;                           
+        emit Transfer(address(0), owner, _totalSupply);
+    }
+
+    function totalSupply() public pure returns (uint256) {
+        return 10_500_000 * 10**8;                                      
+    }
+
+    function balanceOf(address account) public view returns (uint256) {
+        return balances[account];
+    }
+
+    function transfer(address to, uint256 amount) public whenNotPaused returns (bool) {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        _transfer(msg.sender, to, amount);
+        return true;
+    }
+
+    function approve(address spender, uint256 amount) public whenNotPaused returns (bool) {
+        _approve(msg.sender, spender, amount);
+        return true;
+    }
+
+    function transferFrom(address from, address to, uint256 amount) public whenNotPaused returns (bool) {
+        uint256 currentAllowance = _allowances[from][msg.sender];
+        require(currentAllowance >= amount, "Insufficient allowance");
+        require(balances[from] >= amount, "Insufficient balance");
+
+        _transfer(from, to, amount);
+        _spendAllowance(from, msg.sender, amount);
+        return true;
+    }
+
+    function pauseContract() public onlyOwner whenNotPaused {
+        isPaused = true;
+        emit Paused(msg.sender);
+    }
+
+    function unpauseContract() public onlyOwner whenPaused {
+        isPaused = false;
+        emit Unpaused(msg.sender);
+    }
+
+    function transferOwnership(address newOwner) public onlyOwner {
+        require(newOwner != address(0), "New owner cannot be zero address");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
+    function _transfer(address from, address to, uint256 amount) internal {
+        require(from != address(0) && to != address(0), "Invalid address");
+        require(balances[from] >= amount, "Insufficient balance");
+
+        unchecked {
+            balances[from] -= amount;
+            balances[to] += amount;
+        }
+
+        emit Transfer(from, to, amount);
+    }
+
+    function _approve(address _owner, address spender, uint256 amount) internal {
+        require(_owner != address(0) && spender != address(0), "Invalid address");
+        _allowances[_owner][spender] = amount;
+        emit Approval(_owner, spender, amount);
+    }
+
+    function _spendAllowance(address _owner, address spender, uint256 amount) internal {
+        uint256 currentAllowance = _allowances[_owner][spender];
+        require(currentAllowance >= amount, "Insufficient allowance");
+
+        unchecked {
+            _allowances[_owner][spender] = currentAllowance - amount;
+        }
+    }
+}
