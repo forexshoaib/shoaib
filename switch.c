@@ -9,5 +9,5 @@ int main(){
 		case 3:
 			printf("changed3");
 		case 4:
-			printf("4");
+			printf("changed4");
 	}
