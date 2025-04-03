@@ -7,7 +7,7 @@ int main(){
 		case 2:
 			printf("cse");
 		case 3:
-			printf("3");
+			printf("changed3");
 		case 4:
 			printf("4");
 	}
