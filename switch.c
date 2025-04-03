@@ -3,7 +3,7 @@ int main(){
 	int case = 2;
 	switch(case){
 		case 1:
-			printf("aiml");
+			printf("changed through 1st branch");
 		case 2:
 			printf("cse");
 		case 3:
